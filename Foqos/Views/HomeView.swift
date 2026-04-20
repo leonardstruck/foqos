@@ -30,6 +30,9 @@ struct HomeView: View {
   // Stats sheet
   @State private var profileToShowStats: BlockedProfiles? = nil
 
+  // Dashboard insights sheet
+  @State private var dashboardInsightsContext: DashboardInsightsContext? = nil
+
   // Donation View
   @State private var showDonationView = false
 
@@ -41,9 +44,6 @@ struct HomeView: View {
 
   // Navigate to profile
   @State private var navigateToProfileId: UUID? = nil
-
-  // Debug mode
-  @State private var showingDebugMode = false
 
   // Activity sessions
   @Query(sort: \BlockedProfileSession.startTime, order: .reverse) private
@@ -124,7 +124,11 @@ struct HomeView: View {
 
         if !profiles.isEmpty {
           BlockedSessionsHabitTracker(
-            sessions: recentCompletedSessions
+            sessions: recentCompletedSessions,
+            profiles: profiles,
+            onInsightsTapped: { context in
+              dashboardInsightsContext = context
+            }
           )
           .padding(.horizontal, 16)
 
@@ -160,15 +164,6 @@ struct HomeView: View {
             },
           )
         }
-
-        VersionFooter(
-          profileIsActive: isBlocking,
-          tapProfileDebugHandler: {
-            showingDebugMode = true
-          }
-        )
-        .frame(maxWidth: .infinity)
-        .padding(.top, 15)
       }
     }
     .refreshable {
@@ -237,6 +232,13 @@ struct HomeView: View {
     .sheet(item: $profileToShowStats) { profile in
       ProfileInsightsView(profile: profile)
     }
+    .sheet(item: $dashboardInsightsContext) { context in
+      ProfileInsightsView(
+        profile: context.profile,
+        initialViewMode: context.viewMode,
+        initialSelectedDate: context.selectedDate
+      )
+    }
     .sheet(
       isPresented: $showNewProfileView,
     ) {
@@ -257,9 +259,6 @@ struct HomeView: View {
     .sheet(isPresented: $showEmergencyView) {
       EmergencyView()
         .presentationDetents([.height(350)])
-    }
-    .sheet(isPresented: $showingDebugMode) {
-      DebugView()
     }
     .alert(alertTitle, isPresented: $showingAlert) {
       Button("OK", role: .cancel) { dismissAlert() }
